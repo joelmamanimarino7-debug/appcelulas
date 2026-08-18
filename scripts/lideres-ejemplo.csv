@@ -1,0 +1,6 @@
+nombre,rol,usuario,email,telefono,password,numeroCelula,nombreCelula,liderM12
+Juan Pérez,lider_m12,juanperez,,71234567,,,,
+María Gómez,lider_m12,mariagomez,,72345678,,,,
+Carlos Rojas,lider,carlosrojas,,73456789,,12,,juanperez
+Ana Flores,lider,anaflores,ana.flores@gmail.com,74567890,,13,Célula Jóvenes,juanperez
+Luis Mamani,lider,luismamani,,75678901,,14,,mariagomez
