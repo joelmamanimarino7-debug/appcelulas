@@ -7,17 +7,16 @@ digital, con panel de consolidado para líderes M12 y administración.
 
 - **Líder**: llena el informe semanal de su célula y ve su propio historial.
 - **Líder M12**: ve el panel consolidado de las células que supervisa.
-- **Administrador**: ve todo, crea usuarios y células, y sube el QR de ofrenda.
+- **Administrador**: ve todo, crea usuarios y células.
 
 ## 1. Crear el proyecto de Firebase
 
 1. Ve a [console.firebase.google.com](https://console.firebase.google.com) y crea un proyecto.
 2. **Authentication** → Sign-in method → habilita **Correo/contraseña**.
 3. **Firestore Database** → crear base de datos (modo producción).
-4. **Storage** → crear bucket (modo producción).
-5. **Configuración del proyecto** → en "Tus apps" agrega una app web y copia
+4. **Configuración del proyecto** → en "Tus apps" agrega una app web y copia
    las credenciales (`apiKey`, `authDomain`, etc.).
-6. **Configuración del proyecto → Cuentas de servicio** → "Generar nueva
+5. **Configuración del proyecto → Cuentas de servicio** → "Generar nueva
    clave privada" → descarga el JSON. Este se usa solo en el servidor, nunca
    lo subas al repositorio.
 
@@ -29,7 +28,6 @@ Copia `.env.local.example` a `.env.local` y completa:
 NEXT_PUBLIC_FIREBASE_API_KEY=...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
 
@@ -44,7 +42,7 @@ npm install
 npm install -g firebase-tools   # si no lo tienes
 firebase login
 firebase use --add              # selecciona tu proyecto
-firebase deploy --only firestore:rules,firestore:indexes,storage
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
 ## 4. Crear el primer administrador
@@ -111,4 +109,7 @@ con "web frameworks" habilitado).
 - `usuarios/{uid}`: nombre, email, rol (`lider` | `lider_m12` | `admin`), celulaId, liderM12Id
 - `celulas/{id}`: numero, liderId, liderNombre, liderM12Id, liderM12Nombre
 - `informes/{id}`: un documento por informe semanal de una célula
-- `config/ofrendaQr`: URL de la imagen del QR de ofrenda
+
+El QR de ofrenda es una imagen estática en `public/qr-ofrenda.png` (no se
+guarda en Firestore ni en Storage). Para cambiarla, reemplaza ese archivo y
+vuelve a desplegar.
