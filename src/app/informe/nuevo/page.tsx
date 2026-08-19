@@ -34,7 +34,6 @@ function NuevoInformeForm() {
 
   const [fecha, setFecha] = useState(today());
   const [ofrendaBs, setOfrendaBs] = useState("");
-  const [ofrendaUsd, setOfrendaUsd] = useState("");
   const [asist, setAsist] = useState("");
   const [anfitrion, setAnfitrion] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -98,7 +97,6 @@ function NuevoInformeForm() {
         liderM12: celula.liderM12Nombre,
         fecha,
         ofrendaBs: Number(ofrendaBs) || 0,
-        ofrendaUsd: Number(ofrendaUsd) || 0,
         asist: Number(asist) || 0,
         anfitrion,
         direccion,
@@ -161,16 +159,6 @@ function NuevoInformeForm() {
             step="0.01"
             value={ofrendaBs}
             onChange={(e) => setOfrendaBs(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Ofrenda $us">
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={ofrendaUsd}
-            onChange={(e) => setOfrendaUsd(e.target.value)}
             className={inputClass}
           />
         </Field>

@@ -60,10 +60,9 @@ function PanelContent() {
       (acc, inf) => ({
         asistencia: acc.asistencia + (inf.totalPresentes || 0),
         ofrendaBs: acc.ofrendaBs + (inf.ofrendaBs || 0),
-        ofrendaUsd: acc.ofrendaUsd + (inf.ofrendaUsd || 0),
         visitas: acc.visitas + (inf.visitas?.length || 0),
       }),
-      { asistencia: 0, ofrendaBs: 0, ofrendaUsd: 0, visitas: 0 }
+      { asistencia: 0, ofrendaBs: 0, visitas: 0 }
     );
   }, [informes]);
 
@@ -109,10 +108,9 @@ function PanelContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <SummaryCard label="Asistencia total" value={totales.asistencia} />
         <SummaryCard label="Ofrenda Bs." value={totales.ofrendaBs.toFixed(2)} />
-        <SummaryCard label="Ofrenda $us" value={totales.ofrendaUsd.toFixed(2)} />
         <SummaryCard label="Visitas nuevas" value={totales.visitas} />
       </div>
 
@@ -149,7 +147,6 @@ function PanelContent() {
                   <th className="px-4 py-2 font-medium">Líder</th>
                   <th className="px-4 py-2 font-medium">Asistencia</th>
                   <th className="px-4 py-2 font-medium">Ofrenda Bs.</th>
-                  <th className="px-4 py-2 font-medium">Ofrenda $us</th>
                   <th className="px-4 py-2 font-medium">Visitas</th>
                 </tr>
               </thead>
@@ -165,7 +162,6 @@ function PanelContent() {
                     <td className="px-4 py-2">{inf.liderNombre}</td>
                     <td className="px-4 py-2">{inf.totalPresentes}</td>
                     <td className="px-4 py-2">{inf.ofrendaBs}</td>
-                    <td className="px-4 py-2">{inf.ofrendaUsd}</td>
                     <td className="px-4 py-2">{inf.visitas.length}</td>
                   </tr>
                 ))}

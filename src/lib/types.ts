@@ -41,7 +41,6 @@ export interface Informe {
 
   fecha: string; // ISO yyyy-MM-dd
   ofrendaBs: number;
-  ofrendaUsd: number;
   asist: number;
   anfitrion: string;
   direccion: string;

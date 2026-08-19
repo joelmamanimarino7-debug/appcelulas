@@ -50,7 +50,6 @@ function InformeDetalle({ id }: { id: string }) {
         <Info label="Líder M12" value={informe.liderM12} />
         <Info label="Anfitrión(a)" value={informe.anfitrion} />
         <Info label="Ofrenda Bs." value={String(informe.ofrendaBs)} />
-        <Info label="Ofrenda $us" value={String(informe.ofrendaUsd)} />
         <Info label="Asistencia" value={String(informe.asist)} />
         <Info label="Dirección" value={informe.direccion} />
         <Info label="Teléfono" value={informe.telefono} />

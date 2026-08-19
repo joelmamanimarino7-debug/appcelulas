@@ -63,7 +63,6 @@ function LiderDashboard() {
                 <th className="px-4 py-2 font-medium">Fecha</th>
                 <th className="px-4 py-2 font-medium">Asistencia</th>
                 <th className="px-4 py-2 font-medium">Ofrenda Bs.</th>
-                <th className="px-4 py-2 font-medium">Ofrenda $us</th>
                 <th className="px-4 py-2 font-medium">Visitas</th>
               </tr>
             </thead>
@@ -77,7 +76,6 @@ function LiderDashboard() {
                   </td>
                   <td className="px-4 py-2">{inf.totalPresentes}</td>
                   <td className="px-4 py-2">{inf.ofrendaBs}</td>
-                  <td className="px-4 py-2">{inf.ofrendaUsd}</td>
                   <td className="px-4 py-2">
                     {inf.visitas.filter((v) => v.trim()).length}
                   </td>
