@@ -29,7 +29,8 @@ detalladas de cada paso.
 
 ## Pendiente más adelante (no bloquea el desarrollo)
 
-- [ ] Subir la imagen real del QR de ofrenda a `public/qr-ofrenda.png`
+- [x] Subir la imagen real del QR de ofrenda a `public/qr-ofrenda.png`
+      (recortada para mostrar solo el código, sin datos de pago visibles)
 - [ ] Cargar líderes M12 y líderes de célula reales (manual desde
       **Usuarios** en la app, o en bloque con `scripts/import-lideres.mjs`
       + un CSV — ver plantilla en `scripts/lideres-ejemplo.csv`)
