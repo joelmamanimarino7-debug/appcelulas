@@ -168,7 +168,9 @@ function UsuariosContent() {
                   <td className="px-4 py-2">{displayUsuario(u.email)}</td>
                   <td className="px-4 py-2">{ROL_LABEL[u.rol]}</td>
                   <td className="px-4 py-2">
-                    {u.celulaId ? (numeroPorCelulaId.get(u.celulaId) ?? u.celulaId) : "—"}
+                    {u.celulaIds && u.celulaIds.length > 0
+                      ? u.celulaIds.map((id) => numeroPorCelulaId.get(id) ?? id).join(", ")
+                      : "—"}
                   </td>
                 </tr>
               ))}

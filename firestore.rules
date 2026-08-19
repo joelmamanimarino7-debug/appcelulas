@@ -38,12 +38,12 @@ service cloud.firestore {
     match /informes/{informeId} {
       allow read: if isAdmin()
         || (isLiderM12() && resource.data.liderM12Id == request.auth.uid)
-        || (isLider() && resource.data.liderId == request.auth.uid);
+        || (isLider() && resource.data.celulaId in userDoc().celulaIds);
 
       allow create: if isAdmin() || (
         isLider() &&
         request.resource.data.liderId == request.auth.uid &&
-        request.resource.data.celulaId == userDoc().celulaId
+        request.resource.data.celulaId in userDoc().celulaIds
       );
 
       allow update: if isAdmin() || (

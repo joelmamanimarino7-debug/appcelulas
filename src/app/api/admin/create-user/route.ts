@@ -8,7 +8,6 @@ interface CreateUserBody {
   usuario: string; // usuario corto (sin @) o correo real
   password: string;
   rol: Rol;
-  celulaId?: string;
   liderM12Id?: string;
 }
 
@@ -30,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as CreateUserBody;
-  const { nombre, usuario, password, rol, celulaId, liderM12Id } = body;
+  const { nombre, usuario, password, rol, liderM12Id } = body;
 
   if (!nombre || !usuario || !password || !rol) {
     return NextResponse.json({ error: "Faltan campos obligatorios." }, { status: 400 });
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
       email,
       rol,
       activo: true,
-      ...(rol === "lider" ? { celulaId: celulaId ?? null, liderM12Id: liderM12Id ?? null } : {}),
+      ...(rol === "lider" ? { celulaIds: [], liderM12Id: liderM12Id ?? null } : {}),
     });
 
     return NextResponse.json({ uid: userRecord.uid });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent } from "react";
 import {
+  arrayUnion,
   collection,
   doc,
   onSnapshot,
@@ -54,7 +55,7 @@ function CrearCelulaForm({
         activa: true,
       });
       batch.update(doc(db, "usuarios", liderId), {
-        celulaId: celulaRef.id,
+        celulaIds: arrayUnion(celulaRef.id),
         liderM12Id,
       });
       await batch.commit();
@@ -133,7 +134,7 @@ function CrearCelulaForm({
         </button>
         {lideresDisponibles.length === 0 && (
           <p className="mt-2 text-xs text-amber-600">
-            No hay líderes disponibles sin célula asignada. Crea uno primero en{" "}
+            Todavía no hay líderes creados. Crea uno primero en{" "}
             <span className="font-medium">Usuarios</span>.
           </p>
         )}
@@ -161,7 +162,7 @@ function CelulasContent() {
     };
   }, []);
 
-  const lideresDisponibles = usuarios.filter((u) => u.rol === "lider" && !u.celulaId);
+  const lideresDisponibles = usuarios.filter((u) => u.rol === "lider");
   const lideresM12 = usuarios.filter((u) => u.rol === "lider_m12");
 
   return (

@@ -11,14 +11,15 @@ import { Informe } from "@/lib/types";
 
 function LiderDashboard() {
   const { usuario } = useAuth();
+  const celulaIds = usuario?.celulaIds ?? [];
   const [informes, setInformes] = useState<Informe[]>([]);
-  const [loading, setLoading] = useState(() => Boolean(usuario?.celulaId));
+  const [loading, setLoading] = useState(() => celulaIds.length > 0);
 
   useEffect(() => {
-    if (!usuario?.celulaId) return;
+    if (celulaIds.length === 0) return;
     const q = query(
       collection(db, "informes"),
-      where("celulaId", "==", usuario.celulaId),
+      where("celulaId", "in", celulaIds),
       orderBy("fecha", "desc")
     );
     const unsub = onSnapshot(q, (snap) => {
@@ -26,9 +27,10 @@ function LiderDashboard() {
       setLoading(false);
     });
     return () => unsub();
-  }, [usuario?.celulaId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- celulaIds es un array nuevo en cada render; comparamos por contenido vía join
+  }, [celulaIds.join(",")]);
 
-  if (!usuario?.celulaId) {
+  if (celulaIds.length === 0) {
     return (
       <p className="text-sm text-slate-600">
         Tu cuenta de líder todavía no tiene una célula asignada. Pide al
@@ -61,6 +63,7 @@ function LiderDashboard() {
             <thead className="bg-slate-50 text-left text-slate-500">
               <tr>
                 <th className="px-4 py-2 font-medium">Fecha</th>
+                {celulaIds.length > 1 && <th className="px-4 py-2 font-medium">Célula</th>}
                 <th className="px-4 py-2 font-medium">Asistencia</th>
                 <th className="px-4 py-2 font-medium">Ofrenda Bs.</th>
                 <th className="px-4 py-2 font-medium">Visitas</th>
@@ -74,6 +77,9 @@ function LiderDashboard() {
                       {inf.fecha}
                     </Link>
                   </td>
+                  {celulaIds.length > 1 && (
+                    <td className="px-4 py-2">N° {inf.celulaNumero}</td>
+                  )}
                   <td className="px-4 py-2">{inf.totalPresentes}</td>
                   <td className="px-4 py-2">{inf.ofrendaBs}</td>
                   <td className="px-4 py-2">

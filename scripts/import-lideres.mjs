@@ -24,7 +24,7 @@ import { randomBytes } from "node:crypto";
 import { parse } from "csv-parse/sync";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 // Debe coincidir con NEXT_PUBLIC_AUTH_EMAIL_SUFFIX de .env.local, para que
 // los usuarios sin correo propio puedan loguearse con el mismo dominio.
@@ -70,7 +70,7 @@ async function crearOEncontrarUsuario({ nombre, email, password, rol }) {
   }
   userRecord = await auth.createUser({ email, password, displayName: nombre });
   await db.doc(`usuarios/${userRecord.uid}`).set(
-    { nombre, email, rol, activo: true },
+    { nombre, email, rol, activo: true, ...(rol === "lider" ? { celulaIds: [] } : {}) },
     { merge: true }
   );
   return { uid: userRecord.uid, creado: true };
@@ -184,7 +184,7 @@ async function main() {
       }
 
       await db.doc(`usuarios/${liderId}`).set(
-        { celulaId, liderM12Id: liderM12.uid },
+        { celulaIds: FieldValue.arrayUnion(celulaId), liderM12Id: liderM12.uid },
         { merge: true }
       );
     } catch (err) {
