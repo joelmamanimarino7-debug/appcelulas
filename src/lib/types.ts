@@ -5,7 +5,7 @@ export interface Usuario {
   nombre: string;
   email: string;
   rol: Rol;
-  celulaIds?: string[]; // solo si rol === 'lider' — puede liderar más de una célula
+  celulaIds?: string[]; // células que lidera personalmente (rol 'lider', o 'lider_m12' si además lidera su propia célula)
   liderM12Id?: string; // solo si rol === 'lider', apunta al uid del lider M12
   activo: boolean;
 }

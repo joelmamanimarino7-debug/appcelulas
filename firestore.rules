@@ -23,6 +23,12 @@ service cloud.firestore {
       return isSignedIn() && userDoc().rol == 'lider';
     }
 
+    // Células que la persona lidera personalmente (rol 'lider', o 'lider_m12'
+    // si además de supervisar lidera su propia célula).
+    function misCelulas() {
+      return ('celulaIds' in userDoc()) ? userDoc().celulaIds : [];
+    }
+
     match /usuarios/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if isAdmin();
@@ -38,16 +44,16 @@ service cloud.firestore {
     match /informes/{informeId} {
       allow read: if isAdmin()
         || (isLiderM12() && resource.data.liderM12Id == request.auth.uid)
-        || (isLider() && resource.data.celulaId in userDoc().celulaIds);
+        || (isSignedIn() && resource.data.celulaId in misCelulas());
 
       allow create: if isAdmin() || (
-        isLider() &&
+        isSignedIn() &&
         request.resource.data.liderId == request.auth.uid &&
-        request.resource.data.celulaId in userDoc().celulaIds
+        request.resource.data.celulaId in misCelulas()
       );
 
       allow update: if isAdmin() || (
-        isLider() &&
+        isSignedIn() &&
         resource.data.liderId == request.auth.uid &&
         request.resource.data.liderId == request.auth.uid &&
         request.resource.data.celulaId == resource.data.celulaId

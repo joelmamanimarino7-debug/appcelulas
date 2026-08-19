@@ -162,7 +162,7 @@ function CelulasContent() {
     };
   }, []);
 
-  const lideresDisponibles = usuarios.filter((u) => u.rol === "lider");
+  const lideresDisponibles = usuarios.filter((u) => u.rol === "lider" || u.rol === "lider_m12");
   const lideresM12 = usuarios.filter((u) => u.rol === "lider_m12");
 
   return (

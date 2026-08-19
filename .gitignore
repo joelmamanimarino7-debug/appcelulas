@@ -36,6 +36,10 @@ yarn-error.log*
 
 # credenciales generadas por scripts/import-lideres.mjs (contienen contraseñas)
 credenciales-generadas-*.csv
+credenciales-completas-*.csv
+
+# CSV con datos reales de líderes (nombres) generado para la importación
+scripts/lideres-import.csv
 
 # claves de cuenta de servicio de Firebase (nunca deben subirse al repo)
 /.secrets/

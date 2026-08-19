@@ -33,7 +33,7 @@ function LiderDashboard() {
   if (celulaIds.length === 0) {
     return (
       <p className="text-sm text-slate-600">
-        Tu cuenta de líder todavía no tiene una célula asignada. Pide al
+        Tu cuenta todavía no tiene una célula asignada. Pide al
         administrador que te asigne una.
       </p>
     );
@@ -116,11 +116,15 @@ function OtrosRolesInicio() {
 
 export default function DashboardPage() {
   const { usuario } = useAuth();
+  const isSupervisor = usuario?.rol === "admin" || usuario?.rol === "lider_m12";
+  const tieneCelulas = (usuario?.celulaIds?.length ?? 0) > 0;
+
   return (
     <ProtectedRoute>
       <Navbar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        {usuario?.rol === "lider" ? <LiderDashboard /> : <OtrosRolesInicio />}
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-10 px-4 py-8">
+        {isSupervisor && <OtrosRolesInicio />}
+        {(usuario?.rol === "lider" || tieneCelulas) && <LiderDashboard />}
       </main>
     </ProtectedRoute>
   );

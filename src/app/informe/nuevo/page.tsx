@@ -367,7 +367,7 @@ function NuevoInformeContent() {
 
 export default function NuevoInformePage() {
   return (
-    <ProtectedRoute allow={["lider"]}>
+    <ProtectedRoute allow={["lider", "lider_m12"]}>
       <Navbar />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
         <Suspense fallback={<p className="text-sm text-slate-500">Cargando...</p>}>
