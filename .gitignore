@@ -37,6 +37,10 @@ yarn-error.log*
 # credenciales generadas por scripts/import-lideres.mjs (contienen contraseñas)
 credenciales-generadas-*.csv
 
+# claves de cuenta de servicio de Firebase (nunca deben subirse al repo)
+/.secrets/
+*firebase-adminsdk*.json
+
 # vercel
 .vercel
 

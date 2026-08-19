@@ -14,22 +14,18 @@ detalladas de cada paso.
 
 ## Pendiente en el otro equipo
 
-- [ ] Clonar el repo y correr `npm install`
-- [ ] Recrear `.env.local` (no se sube a git por seguridad). Copiar
-      `.env.local.example` y completar con:
-  - Config web de Firebase (Configuración del proyecto → Tus apps)
-  - `FIREBASE_SERVICE_ACCOUNT_JSON`: volver a generar una clave privada en
-    Configuración del proyecto → Cuentas de servicio (o copiar la ya
-    generada desde un lugar seguro, no por chat/email sin cifrar)
-- [ ] Confirmar **Authentication → Sign-in method → Correo/contraseña**
+- [x] Clonar el repo y correr `npm install`
+- [x] Recrear `.env.local` (clave de cuenta de servicio guardada en
+      `.secrets/service-account.json`, ignorado por git)
+- [x] Confirmar **Authentication → Sign-in method → Correo/contraseña**
       activado en la consola de Firebase
-- [ ] `npx firebase login`
-- [ ] `npx firebase use --add` (seleccionar `appcelulas-d2889`)
-- [ ] `npx firebase deploy --only firestore:rules,firestore:indexes`
-- [ ] Crear el primer administrador:
-      `node scripts/seed-admin.mjs correo@ejemplo.com "contraseña" "Nombre"`
-      (con `FIREBASE_SERVICE_ACCOUNT_JSON` exportado en el entorno)
-- [ ] `npm run dev` y probar login como admin
+- [x] Reglas de Firestore publicadas (pegadas manualmente en la consola,
+      Firestore → Reglas — el CLI `firebase deploy` no tenía permiso para
+      chequear las APIs habilitadas con la service account, así que se hizo
+      por consola en vez del paso `firebase login` + `firebase deploy`)
+- [x] Primer administrador creado con `scripts/seed-admin.mjs`
+      (joelmamanimarino7@gmail.com)
+- [x] `npm run dev` y login como admin probado — funciona sin errores
 
 ## Pendiente más adelante (no bloquea el desarrollo)
 
