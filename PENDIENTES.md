@@ -31,8 +31,15 @@ detalladas de cada paso.
 
 - [x] Subir la imagen real del QR de ofrenda a `public/qr-ofrenda.png`
       (recortada para mostrar solo el código, sin datos de pago visibles)
-- [ ] Cargar líderes M12 y líderes de célula reales (manual desde
-      **Usuarios** en la app, o en bloque con `scripts/import-lideres.mjs`
-      + un CSV — ver plantilla en `scripts/lideres-ejemplo.csv`)
+- [x] Cargar líderes M12 y líderes de célula reales: importados 40 M12 +
+      166 líderes de célula (206 células) desde el Excel real, vía
+      `scripts/import-lideres.mjs`. Login sin correo (usuario@primeraasamblea.app),
+      con soporte de líderes en más de una célula y de M12 que además
+      lideran su propia célula. Credenciales guardadas en `.secrets/`
+      (no se suben a git) — pendiente compartírselas a cada líder.
+- [x] Índices compuestos de Firestore creados en consola (celulaId+fecha,
+      liderM12Id+fecha) para el panel consolidado y el historial de informes
 - [ ] Decidir dónde desplegar en producción (Vercel recomendado, ver
       README sección 7)
+- [ ] Compartir credenciales (usuario + contraseña temporal) a cada líder
+      de forma segura, y borrar el archivo de `.secrets/` después
