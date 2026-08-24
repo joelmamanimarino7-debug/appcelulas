@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import {
+  arrayUnion,
+  collection,
+  doc,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -95,6 +105,104 @@ function LiderDashboard() {
   );
 }
 
+function AbrirCelulaPropia() {
+  const { usuario } = useAuth();
+  const [abierto, setAbierto] = useState(false);
+  const [numero, setNumero] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!usuario) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const ref = await addDoc(collection(db, "celulas"), {
+        numero,
+        nombre: nombre || null,
+        liderId: usuario.uid,
+        liderNombre: usuario.nombre,
+        liderM12Id: usuario.uid,
+        liderM12Nombre: usuario.nombre,
+        activa: true,
+      });
+      await updateDoc(doc(db, "usuarios", usuario.uid), {
+        celulaIds: arrayUnion(ref.id),
+      });
+      setSuccess(`Célula N° ${numero} creada. Ya la puedes ver en "Mis informes".`);
+      setNumero("");
+      setNombre("");
+      setAbierto(false);
+    } catch {
+      setError("No se pudo crear la célula. Intenta de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!abierto) {
+    return (
+      <div className="space-y-2">
+        <button
+          onClick={() => {
+            setAbierto(true);
+            setSuccess(null);
+          }}
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+        >
+          + Abrir nueva célula bajo mi liderazgo
+        </button>
+        {success && <p className="text-sm text-green-600">{success}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-3"
+    >
+      <label className="text-sm">
+        <span className="mb-1 block font-medium text-slate-700">Número de célula</span>
+        <input
+          required
+          value={numero}
+          onChange={(e) => setNumero(e.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
+      </label>
+      <label className="text-sm">
+        <span className="mb-1 block font-medium text-slate-700">Nombre (opcional)</span>
+        <input
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        />
+      </label>
+      <div className="flex items-end gap-2">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {submitting ? "Creando..." : "Crear célula"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setAbierto(false)}
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+        >
+          Cancelar
+        </button>
+      </div>
+      {error && <p className="sm:col-span-3 text-sm text-red-600">{error}</p>}
+    </form>
+  );
+}
+
 function OtrosRolesInicio() {
   const { usuario } = useAuth();
   return (
@@ -110,6 +218,7 @@ function OtrosRolesInicio() {
         </Link>
         .
       </p>
+      {usuario?.rol === "lider_m12" && <AbrirCelulaPropia />}
     </div>
   );
 }

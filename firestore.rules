@@ -31,14 +31,27 @@ service cloud.firestore {
 
     match /usuarios/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow write: if isAdmin();
+      allow write: if isAdmin() || (
+        isLiderM12() &&
+        request.auth.uid == uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['celulaIds'])
+      );
     }
 
     match /celulas/{celulaId} {
       allow read: if isAdmin()
         || (isLiderM12() && resource.data.liderM12Id == request.auth.uid)
         || (isLider() && resource.data.liderId == request.auth.uid);
-      allow write: if isAdmin();
+
+      // Un líder M12 puede abrir una célula nueva bajo su propio liderazgo
+      // (él mismo como líder y como M12 supervisor).
+      allow create: if isAdmin() || (
+        isLiderM12() &&
+        request.resource.data.liderId == request.auth.uid &&
+        request.resource.data.liderM12Id == request.auth.uid
+      );
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /informes/{informeId} {
