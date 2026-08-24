@@ -24,6 +24,16 @@ import { Celula, Informe } from "@/lib/types";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+const DIAS_SEMANA = [
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+  "Domingo",
+];
+
 function SeleccionarCelula({ celulaIds }: { celulaIds: string[] }) {
   const [celulas, setCelulas] = useState<Celula[]>([]);
   const [loading, setLoading] = useState(true);
@@ -226,13 +236,18 @@ function NuevoInformeForm({ celulaId }: { celulaId: string }) {
           />
         </Field>
         <Field label="Día de reunión">
-          <input
-            type="text"
+          <select
             value={diaReunion}
             onChange={(e) => setDiaReunion(e.target.value)}
             className={inputClass}
-            placeholder="Ej. Miércoles"
-          />
+          >
+            <option value="">Selecciona...</option>
+            {DIAS_SEMANA.map((dia) => (
+              <option key={dia} value={dia}>
+                {dia}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Hora">
           <div className="flex gap-2">
