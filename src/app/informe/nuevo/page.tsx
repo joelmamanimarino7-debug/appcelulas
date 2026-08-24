@@ -235,12 +235,40 @@ function NuevoInformeForm({ celulaId }: { celulaId: string }) {
           />
         </Field>
         <Field label="Hora">
-          <input
-            type="time"
-            value={hora}
-            onChange={(e) => setHora(e.target.value)}
-            className={inputClass}
-          />
+          <div className="flex gap-2">
+            <select
+              value={hora.split(":")[0] ?? ""}
+              onChange={(e) => {
+                const m = hora.split(":")[1] ?? "00";
+                setHora(e.target.value ? `${e.target.value}:${m}` : "");
+              }}
+              className={inputClass}
+            >
+              <option value="">Hora</option>
+              {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))}
+            </select>
+            <select
+              value={hora.split(":")[1] ?? ""}
+              onChange={(e) => {
+                const h = hora.split(":")[0] ?? "00";
+                setHora(e.target.value ? `${h}:${e.target.value}` : "");
+              }}
+              className={inputClass}
+            >
+              <option value="">Min</option>
+              {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map(
+                (m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
         </Field>
         <Field label="Líder M12">
           <input type="text" value={celula.liderM12Nombre} disabled className={`${inputClass} bg-slate-50 text-slate-500`} />
