@@ -80,6 +80,28 @@ function PanelContent() {
     return !ultima || ultima < isoDaysAgo(7);
   });
 
+  const porMacrocelula = useMemo(() => {
+    const celulaIdsConInforme = new Set(informes.map((i) => i.celulaId));
+    const grupos = new Map<
+      string,
+      { liderM12Id: string; nombre: string; total: number; reportaron: number }
+    >();
+    for (const c of celulas) {
+      if (!grupos.has(c.liderM12Id)) {
+        grupos.set(c.liderM12Id, {
+          liderM12Id: c.liderM12Id,
+          nombre: c.liderM12Nombre,
+          total: 0,
+          reportaron: 0,
+        });
+      }
+      const g = grupos.get(c.liderM12Id)!;
+      g.total += 1;
+      if (celulaIdsConInforme.has(c.id)) g.reportaron += 1;
+    }
+    return Array.from(grupos.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [celulas, informes]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -112,6 +134,43 @@ function PanelContent() {
         <SummaryCard label="Asistencia total" value={totales.asistencia} />
         <SummaryCard label="Ofrenda Bs." value={totales.ofrendaBs.toFixed(2)} />
         <SummaryCard label="Visitas nuevas" value={totales.visitas} />
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-slate-800">
+          Estado por macrocélula (rango seleccionado)
+        </h2>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-left text-slate-500">
+              <tr>
+                <th className="px-4 py-2 font-medium">Líder M12</th>
+                <th className="px-4 py-2 font-medium">Células</th>
+                <th className="px-4 py-2 font-medium">Reportaron</th>
+              </tr>
+            </thead>
+            <tbody>
+              {porMacrocelula.map((g) => {
+                const porcentaje = g.total > 0 ? Math.round((g.reportaron / g.total) * 100) : 0;
+                const color =
+                  g.reportaron === 0
+                    ? "text-red-600"
+                    : g.reportaron < g.total
+                      ? "text-amber-600"
+                      : "text-green-600";
+                return (
+                  <tr key={g.liderM12Id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{g.nombre}</td>
+                    <td className="px-4 py-2">{g.total}</td>
+                    <td className={`px-4 py-2 font-medium ${color}`}>
+                      {g.reportaron} de {g.total} ({porcentaje}%)
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {celulasSinInformeReciente.length > 0 && (
