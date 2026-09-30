@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -79,7 +80,11 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="mt-6 text-center text-xs text-slate-400">
-          ¿No tienes cuenta? Pide a tu líder M12 o al administrador que te la cree.
+          ¿Vienes a llenar el informe de tu célula?{" "}
+          <Link href="/informe/publico" className="text-blue-500 hover:underline">
+            Ve aquí
+          </Link>{" "}
+          — no necesitas iniciar sesión.
         </p>
       </div>
     </div>

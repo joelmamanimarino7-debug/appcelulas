@@ -39,9 +39,9 @@ service cloud.firestore {
     }
 
     match /celulas/{celulaId} {
-      allow read: if isAdmin()
-        || (isLiderM12() && resource.data.liderM12Id == request.auth.uid)
-        || (isLider() && resource.data.liderId == request.auth.uid);
+      // Lectura pública: el formulario de informe (sin login) necesita poder
+      // buscar y mostrar la lista de células.
+      allow read: if true;
 
       // Un líder M12 puede abrir una célula nueva bajo su propio liderazgo
       // (él mismo como líder y como M12 supervisor).
@@ -59,19 +59,21 @@ service cloud.firestore {
         || (isLiderM12() && resource.data.liderM12Id == request.auth.uid)
         || (isSignedIn() && resource.data.celulaId in misCelulas());
 
+      // Creación sin login: cualquiera con el link público puede registrar
+      // el informe de una célula real, siempre que el liderId coincida con
+      // el líder registrado de esa célula (evita datos inventados, aunque
+      // no verifica identidad ya que no hay autenticación).
       allow create: if isAdmin() || (
         isSignedIn() &&
         request.resource.data.liderId == request.auth.uid &&
         request.resource.data.celulaId in misCelulas()
+      ) || (
+        exists(/databases/$(database)/documents/celulas/$(request.resource.data.celulaId)) &&
+        request.resource.data.liderId ==
+          get(/databases/$(database)/documents/celulas/$(request.resource.data.celulaId)).data.liderId
       );
 
-      allow update: if isAdmin() || (
-        isSignedIn() &&
-        resource.data.liderId == request.auth.uid &&
-        request.resource.data.liderId == request.auth.uid &&
-        request.resource.data.celulaId == resource.data.celulaId
-      );
-
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 

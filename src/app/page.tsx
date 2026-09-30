@@ -10,7 +10,7 @@ export default function Home() {
 
   useEffect(() => {
     if (loading) return;
-    router.replace(firebaseUser ? "/dashboard" : "/login");
+    router.replace(firebaseUser ? "/dashboard" : "/informe/publico");
   }, [loading, firebaseUser, router]);
 
   return (
