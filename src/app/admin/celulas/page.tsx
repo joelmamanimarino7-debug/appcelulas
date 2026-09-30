@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent } from "react";
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   doc,
@@ -143,10 +144,144 @@ function CrearCelulaForm({
   );
 }
 
+function EditarCelulaRow({
+  celula,
+  lideresDisponibles,
+  lideresM12,
+  onDone,
+}: {
+  celula: Celula;
+  lideresDisponibles: Usuario[];
+  lideresM12: Usuario[];
+  onDone: () => void;
+}) {
+  const [numero, setNumero] = useState(celula.numero);
+  const [nombre, setNombre] = useState(celula.nombre ?? "");
+  const [liderId, setLiderId] = useState(celula.liderId);
+  const [liderM12Id, setLiderM12Id] = useState(celula.liderM12Id);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleGuardar() {
+    setError(null);
+    if (!liderId || !liderM12Id) {
+      setError("Selecciona un líder y un líder M12.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const lider = lideresDisponibles.find((u) => u.uid === liderId)!;
+      const liderM12 = lideresM12.find((u) => u.uid === liderM12Id)!;
+
+      const batch = writeBatch(db);
+      batch.update(doc(db, "celulas", celula.id), {
+        numero,
+        nombre: nombre || null,
+        liderId,
+        liderNombre: lider.nombre,
+        liderM12Id,
+        liderM12Nombre: liderM12.nombre,
+      });
+
+      if (liderId !== celula.liderId) {
+        batch.update(doc(db, "usuarios", celula.liderId), {
+          celulaIds: arrayRemove(celula.id),
+        });
+        batch.update(doc(db, "usuarios", liderId), {
+          celulaIds: arrayUnion(celula.id),
+          liderM12Id,
+        });
+      } else if (liderM12Id !== celula.liderM12Id) {
+        batch.update(doc(db, "usuarios", liderId), { liderM12Id });
+      }
+
+      await batch.commit();
+      onDone();
+    } catch {
+      setError("No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <tr className="border-t border-slate-100 bg-slate-50">
+      <td className="px-4 py-2" colSpan={5}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">N°</span>
+            <input
+              value={numero}
+              onChange={(e) => setNumero(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Nombre</span>
+            <input
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Líder</span>
+            <select
+              value={liderId}
+              onChange={(e) => setLiderId(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              {lideresDisponibles.map((u) => (
+                <option key={u.uid} value={u.uid}>
+                  {u.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Líder M12</span>
+            <select
+              value={liderM12Id}
+              onChange={(e) => setLiderM12Id(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              {lideresM12.map((u) => (
+                <option key={u.uid} value={u.uid}>
+                  {u.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={handleGuardar}
+              disabled={submitting}
+              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {submitting ? "Guardando..." : "Guardar"}
+            </button>
+            <button
+              onClick={onDone}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      </td>
+    </tr>
+  );
+}
+
 function CelulasContent() {
   const [celulas, setCelulas] = useState<Celula[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
+  const [borrandoId, setBorrandoId] = useState<string | null>(null);
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubCelulas = onSnapshot(query(collection(db, "celulas"), orderBy("numero")), (snap) => {
@@ -165,6 +300,24 @@ function CelulasContent() {
   const lideresDisponibles = usuarios.filter((u) => u.rol === "lider" || u.rol === "lider_m12");
   const lideresM12 = usuarios.filter((u) => u.rol === "lider_m12");
 
+  async function handleEliminar(c: Celula) {
+    setConfirmandoId(null);
+    setErrorBorrar(null);
+    setBorrandoId(c.id);
+    try {
+      const batch = writeBatch(db);
+      batch.delete(doc(db, "celulas", c.id));
+      batch.update(doc(db, "usuarios", c.liderId), {
+        celulaIds: arrayRemove(c.id),
+      });
+      await batch.commit();
+    } catch (err) {
+      setErrorBorrar(err instanceof Error ? err.message : "Error al eliminar la célula.");
+    } finally {
+      setBorrandoId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-slate-900">Células</h1>
@@ -173,6 +326,8 @@ function CelulasContent() {
         lideresM12={lideresM12}
         onCreated={() => {}}
       />
+
+      {errorBorrar && <p className="text-sm text-red-600">{errorBorrar}</p>}
 
       {loading ? (
         <p className="text-sm text-slate-500">Cargando...</p>
@@ -185,17 +340,63 @@ function CelulasContent() {
                 <th className="px-4 py-2 font-medium">Nombre</th>
                 <th className="px-4 py-2 font-medium">Líder</th>
                 <th className="px-4 py-2 font-medium">Líder M12</th>
+                <th className="px-4 py-2 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {celulas.map((c) => (
-                <tr key={c.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2">{c.numero}</td>
-                  <td className="px-4 py-2">{c.nombre ?? "—"}</td>
-                  <td className="px-4 py-2">{c.liderNombre}</td>
-                  <td className="px-4 py-2">{c.liderM12Nombre}</td>
-                </tr>
-              ))}
+              {celulas.map((c) =>
+                editandoId === c.id ? (
+                  <EditarCelulaRow
+                    key={c.id}
+                    celula={c}
+                    lideresDisponibles={lideresDisponibles}
+                    lideresM12={lideresM12}
+                    onDone={() => setEditandoId(null)}
+                  />
+                ) : (
+                  <tr key={c.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{c.numero}</td>
+                    <td className="px-4 py-2">{c.nombre ?? "—"}</td>
+                    <td className="px-4 py-2">{c.liderNombre}</td>
+                    <td className="px-4 py-2">{c.liderM12Nombre}</td>
+                    <td className="px-4 py-2">
+                      {confirmandoId === c.id ? (
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs text-slate-600">¿Eliminar?</span>
+                          <button
+                            onClick={() => handleEliminar(c)}
+                            disabled={borrandoId === c.id}
+                            className="font-medium text-red-600 hover:underline disabled:opacity-50"
+                          >
+                            {borrandoId === c.id ? "Eliminando..." : "Sí, eliminar"}
+                          </button>
+                          <button
+                            onClick={() => setConfirmandoId(null)}
+                            className="text-slate-500 hover:underline"
+                          >
+                            Cancelar
+                          </button>
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setEditandoId(c.id)}
+                            className="mr-3 text-blue-600 hover:underline"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => setConfirmandoId(c.id)}
+                            className="text-red-600 hover:underline"
+                          >
+                            Eliminar
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
