@@ -7,8 +7,6 @@ import {
   collection,
   doc,
   onSnapshot,
-  orderBy,
-  query,
   writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -284,8 +282,10 @@ function CelulasContent() {
   const [errorBorrar, setErrorBorrar] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubCelulas = onSnapshot(query(collection(db, "celulas"), orderBy("numero")), (snap) => {
-      setCelulas(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Celula, "id">) })));
+    const unsubCelulas = onSnapshot(collection(db, "celulas"), (snap) => {
+      const lista = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Celula, "id">) }));
+      lista.sort((a, b) => Number(a.numero) - Number(b.numero));
+      setCelulas(lista);
       setLoading(false);
     });
     const unsubUsuarios = onSnapshot(collection(db, "usuarios"), (snap) => {
