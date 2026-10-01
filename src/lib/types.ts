@@ -8,6 +8,8 @@ export interface Usuario {
   celulaIds?: string[]; // células que lidera personalmente (rol 'lider', o 'lider_m12' si además lidera su propia célula)
   liderM12Id?: string; // solo si rol === 'lider', apunta al uid del lider M12
   activo: boolean;
+  celular?: string; // número de WhatsApp, sin código de país
+  fechaNacimiento?: string; // ISO yyyy-MM-dd
 }
 
 export interface Celula {
