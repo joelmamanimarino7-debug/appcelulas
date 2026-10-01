@@ -22,6 +22,7 @@ function PanelContent() {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(isoDaysAgo(28));
   const [endDate, setEndDate] = useState(isoDaysAgo(0));
+  const [macroFiltro, setMacroFiltro] = useState<string | null>(null);
 
   const isAdmin = usuario?.rol === "admin";
 
@@ -102,6 +103,14 @@ function PanelContent() {
     return Array.from(grupos.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [celulas, informes]);
 
+  const informesFiltrados = macroFiltro
+    ? informes.filter((inf) => inf.liderM12Id === macroFiltro)
+    : informes;
+
+  const nombreMacroFiltro = macroFiltro
+    ? porMacrocelula.find((g) => g.liderM12Id === macroFiltro)?.nombre
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -140,6 +149,9 @@ function PanelContent() {
         <h2 className="mb-2 text-sm font-semibold text-slate-800">
           Estado por macrocélula (rango seleccionado)
         </h2>
+        <p className="mb-2 text-xs text-slate-500">
+          Haz clic en una fila para ver solo los informes de esa macrocélula.
+        </p>
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-slate-500">
@@ -158,8 +170,15 @@ function PanelContent() {
                     : g.reportaron < g.total
                       ? "text-amber-600"
                       : "text-green-600";
+                const seleccionada = macroFiltro === g.liderM12Id;
                 return (
-                  <tr key={g.liderM12Id} className="border-t border-slate-100">
+                  <tr
+                    key={g.liderM12Id}
+                    onClick={() => setMacroFiltro(seleccionada ? null : g.liderM12Id)}
+                    className={`cursor-pointer border-t border-slate-100 hover:bg-slate-50 ${
+                      seleccionada ? "bg-blue-50" : ""
+                    }`}
+                  >
                     <td className="px-4 py-2">{g.nombre}</td>
                     <td className="px-4 py-2">{g.total}</td>
                     <td className={`px-4 py-2 font-medium ${color}`}>
@@ -189,13 +208,30 @@ function PanelContent() {
       )}
 
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-slate-800">
-          Informes en el rango seleccionado
-        </h2>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-slate-800">
+            Informes en el rango seleccionado
+            {nombreMacroFiltro && (
+              <span className="font-normal text-slate-500"> — macrocélula de {nombreMacroFiltro}</span>
+            )}
+          </h2>
+          {macroFiltro && (
+            <button
+              onClick={() => setMacroFiltro(null)}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Quitar filtro
+            </button>
+          )}
+        </div>
         {loading ? (
           <p className="text-sm text-slate-500">Cargando...</p>
-        ) : informes.length === 0 ? (
-          <p className="text-sm text-slate-500">No hay informes en este rango de fechas.</p>
+        ) : informesFiltrados.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            {macroFiltro
+              ? "Esa macrocélula no tiene informes en este rango de fechas."
+              : "No hay informes en este rango de fechas."}
+          </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-sm">
@@ -210,7 +246,7 @@ function PanelContent() {
                 </tr>
               </thead>
               <tbody>
-                {informes.map((inf) => (
+                {informesFiltrados.map((inf) => (
                   <tr key={inf.id} className="border-t border-slate-100">
                     <td className="px-4 py-2">
                       <Link href={`/informe/${inf.id}`} className="text-blue-600 hover:underline">

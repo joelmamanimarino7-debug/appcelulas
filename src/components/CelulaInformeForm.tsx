@@ -182,6 +182,7 @@ export function CelulaInformeForm({
         <Field label="Ofrenda Bs.">
           <input
             type="number"
+            required
             min="0"
             step="0.01"
             value={ofrendaBs}
@@ -192,6 +193,7 @@ export function CelulaInformeForm({
         <Field label="Asistencia">
           <input
             type="number"
+            required
             min="0"
             value={asist}
             onChange={(e) => setAsist(e.target.value)}
@@ -201,6 +203,7 @@ export function CelulaInformeForm({
         <Field label="Anfitrión(a)">
           <input
             type="text"
+            required
             value={anfitrion}
             onChange={(e) => setAnfitrion(e.target.value)}
             className={inputClass}
@@ -209,6 +212,7 @@ export function CelulaInformeForm({
         <Field label="Teléfono">
           <input
             type="text"
+            required
             value={telefono}
             onChange={(e) => setTelefono(e.target.value)}
             className={inputClass}
@@ -217,6 +221,7 @@ export function CelulaInformeForm({
         <Field label="Dirección de célula" className="sm:col-span-2 lg:col-span-2">
           <input
             type="text"
+            required
             value={direccion}
             onChange={(e) => setDireccion(e.target.value)}
             className={inputClass}
@@ -224,6 +229,7 @@ export function CelulaInformeForm({
         </Field>
         <Field label="Día de reunión">
           <select
+            required
             value={diaReunion}
             onChange={(e) => setDiaReunion(e.target.value)}
             className={inputClass}
@@ -239,6 +245,7 @@ export function CelulaInformeForm({
         <Field label="Hora">
           <div className="flex gap-2">
             <select
+              required
               value={hora.split(":")[0] ?? ""}
               onChange={(e) => {
                 const m = hora.split(":")[1] ?? "00";
@@ -254,6 +261,7 @@ export function CelulaInformeForm({
               ))}
             </select>
             <select
+              required
               value={hora.split(":")[1] ?? ""}
               onChange={(e) => {
                 const h = hora.split(":")[0] ?? "00";
@@ -313,6 +321,7 @@ export function CelulaInformeForm({
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <Field label="Observaciones">
           <textarea
+            required
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}
             rows={3}
