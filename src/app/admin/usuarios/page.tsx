@@ -15,13 +15,6 @@ import { auth, db } from "@/lib/firebase";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Navbar } from "@/components/Navbar";
 import { Celula, Informe, Rol, Usuario } from "@/lib/types";
-import { AUTH_EMAIL_SUFFIX } from "@/lib/auth-email";
-
-function displayUsuario(email: string) {
-  return email.endsWith(`@${AUTH_EMAIL_SUFFIX}`)
-    ? email.slice(0, -(AUTH_EMAIL_SUFFIX.length + 1))
-    : email;
-}
 
 function isoDaysAgo(days: number) {
   const d = new Date();
@@ -368,7 +361,6 @@ function UsuariosContent() {
             <thead className="bg-slate-50 text-left text-slate-500">
               <tr>
                 <th className="px-4 py-2 font-medium">Nombre</th>
-                <th className="px-4 py-2 font-medium">Usuario / correo</th>
                 <th className="px-4 py-2 font-medium">Rol</th>
                 <th className="px-4 py-2 font-medium">Célula(s)</th>
                 <th className="px-4 py-2 font-medium">Celular</th>
@@ -397,7 +389,6 @@ function UsuariosContent() {
                 return (
                   <tr key={u.uid} className="border-t border-slate-100">
                     <td className="px-4 py-2">{u.nombre}</td>
-                    <td className="px-4 py-2">{displayUsuario(u.email)}</td>
                     <td className="px-4 py-2">{ROL_LABEL[u.rol]}</td>
                     <td className="px-4 py-2">
                       {u.celulaIds && u.celulaIds.length > 0
