@@ -1,17 +1,49 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
-import { collection, deleteField, doc, onSnapshot, orderBy, query, updateDoc } from "firebase/firestore";
+import { useEffect, useMemo, useState, FormEvent } from "react";
+import {
+  collection,
+  deleteField,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Navbar } from "@/components/Navbar";
-import { Celula, Rol, Usuario } from "@/lib/types";
+import { Celula, Informe, Rol, Usuario } from "@/lib/types";
 import { AUTH_EMAIL_SUFFIX } from "@/lib/auth-email";
 
 function displayUsuario(email: string) {
   return email.endsWith(`@${AUTH_EMAIL_SUFFIX}`)
     ? email.slice(0, -(AUTH_EMAIL_SUFFIX.length + 1))
     : email;
+}
+
+function isoDaysAgo(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+const WHATSAPP_COUNTRY_CODE = "591";
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith(WHATSAPP_COUNTRY_CODE)) return digits;
+  return `${WHATSAPP_COUNTRY_CODE}${digits.replace(/^0+/, "")}`;
+}
+
+function mensajeRecordatorio(nombre: string, numerosCelula: string[]) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const celulaTexto =
+    numerosCelula.length > 1
+      ? `tus células N° ${numerosCelula.join(", ")}`
+      : `tu célula N° ${numerosCelula[0]}`;
+  return `Hola ${nombre}, te saluda el equipo de Primera Asamblea. Notamos que ${celulaTexto} todavía no envió el informe semanal. ¿Nos ayudas llenándolo aquí? ${origin}/informe/publico ¡Gracias por tu servicio!`;
 }
 
 const ROL_LABEL: Record<Rol, string> = {
@@ -133,6 +165,8 @@ function EditarUsuarioRow({
   const [nombre, setNombre] = useState(usuario.nombre);
   const [rol, setRol] = useState<Rol>(usuario.rol);
   const [liderM12Id, setLiderM12Id] = useState(usuario.liderM12Id ?? "");
+  const [celular, setCelular] = useState(usuario.celular ?? "");
+  const [fechaNacimiento, setFechaNacimiento] = useState(usuario.fechaNacimiento ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,6 +179,8 @@ function EditarUsuarioRow({
         nombre,
         rol,
         liderM12Id: rol === "lider" ? liderM12Id || null : usuario.liderM12Id ?? null,
+        celular,
+        fechaNacimiento,
         ...(rolCambioAFueraDeLider ? { celulaIds: deleteField() } : {}),
       });
       onDone();
@@ -157,8 +193,8 @@ function EditarUsuarioRow({
 
   return (
     <tr className="border-t border-slate-100 bg-slate-50">
-      <td className="px-4 py-2" colSpan={5}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+      <td className="px-4 py-2" colSpan={8}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="text-sm">
             <span className="mb-1 block font-medium text-slate-700">Nombre</span>
             <input
@@ -196,6 +232,25 @@ function EditarUsuarioRow({
               </select>
             </label>
           )}
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Número de celular</span>
+            <input
+              type="tel"
+              placeholder="70012345"
+              value={celular}
+              onChange={(e) => setCelular(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Fecha de nacimiento</span>
+            <input
+              type="date"
+              value={fechaNacimiento}
+              onChange={(e) => setFechaNacimiento(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
           <div className="flex items-end gap-2">
             <button
               onClick={handleGuardar}
@@ -226,6 +281,7 @@ function EditarUsuarioRow({
 function UsuariosContent() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [celulas, setCelulas] = useState<Celula[]>([]);
+  const [informesRecientes, setInformesRecientes] = useState<Informe[]>([]);
   const [loading, setLoading] = useState(true);
   const [editandoUid, setEditandoUid] = useState<string | null>(null);
   const [confirmandoUid, setConfirmandoUid] = useState<string | null>(null);
@@ -241,14 +297,35 @@ function UsuariosContent() {
     const unsubCelulas = onSnapshot(collection(db, "celulas"), (snap) => {
       setCelulas(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Celula, "id">) })));
     });
+    const unsubInformes = onSnapshot(
+      query(collection(db, "informes"), where("fecha", ">=", isoDaysAgo(7))),
+      (snap) => {
+        setInformesRecientes(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Informe, "id">) })));
+      }
+    );
     return () => {
       unsub();
       unsubCelulas();
+      unsubInformes();
     };
   }, []);
 
   const numeroPorCelulaId = new Map(celulas.map((c) => [c.id, c.numero]));
   const lideresM12 = usuarios.filter((u) => u.rol === "lider_m12");
+
+  const celulasPorLider = useMemo(() => {
+    const map = new Map<string, Celula[]>();
+    for (const c of celulas) {
+      if (!map.has(c.liderId)) map.set(c.liderId, []);
+      map.get(c.liderId)!.push(c);
+    }
+    return map;
+  }, [celulas]);
+
+  const celulaIdsConInformeReciente = useMemo(
+    () => new Set(informesRecientes.map((i) => i.celulaId)),
+    [informesRecientes]
+  );
 
   async function handleEliminar(u: Usuario) {
     setConfirmandoUid(null);
@@ -272,8 +349,14 @@ function UsuariosContent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-900">Usuarios</h1>
+      <h1 className="text-xl font-semibold text-slate-900">Usuarios y líderes</h1>
       <CrearUsuarioForm onCreated={() => {}} />
+
+      <p className="text-sm text-slate-600">
+        Completa el celular y la fecha de nacimiento de cada líder editando su fila. El botón de
+        WhatsApp aparece para quienes tienen celular registrado y no enviaron el informe en los
+        últimos 7 días.
+      </p>
 
       {errorBorrar && <p className="text-sm text-red-600">{errorBorrar}</p>}
 
@@ -287,20 +370,31 @@ function UsuariosContent() {
                 <th className="px-4 py-2 font-medium">Nombre</th>
                 <th className="px-4 py-2 font-medium">Usuario / correo</th>
                 <th className="px-4 py-2 font-medium">Rol</th>
-                <th className="px-4 py-2 font-medium">Célula</th>
+                <th className="px-4 py-2 font-medium">Célula(s)</th>
+                <th className="px-4 py-2 font-medium">Celular</th>
+                <th className="px-4 py-2 font-medium">Fecha de nacimiento</th>
+                <th className="px-4 py-2 font-medium">Informe (7 días)</th>
                 <th className="px-4 py-2 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u) =>
-                editandoUid === u.uid ? (
-                  <EditarUsuarioRow
-                    key={u.uid}
-                    usuario={u}
-                    lideresM12={lideresM12}
-                    onDone={() => setEditandoUid(null)}
-                  />
-                ) : (
+              {usuarios.map((u) => {
+                if (editandoUid === u.uid) {
+                  return (
+                    <EditarUsuarioRow
+                      key={u.uid}
+                      usuario={u}
+                      lideresM12={lideresM12}
+                      onDone={() => setEditandoUid(null)}
+                    />
+                  );
+                }
+                const misCelulas = celulasPorLider.get(u.uid) ?? [];
+                const numeros = misCelulas.map((c) => c.numero);
+                const reporto =
+                  misCelulas.length === 0 ||
+                  misCelulas.some((c) => celulaIdsConInformeReciente.has(c.id));
+                return (
                   <tr key={u.uid} className="border-t border-slate-100">
                     <td className="px-4 py-2">{u.nombre}</td>
                     <td className="px-4 py-2">{displayUsuario(u.email)}</td>
@@ -310,7 +404,18 @@ function UsuariosContent() {
                         ? u.celulaIds.map((id) => numeroPorCelulaId.get(id) ?? id).join(", ")
                         : "—"}
                     </td>
+                    <td className="px-4 py-2">{u.celular || "—"}</td>
+                    <td className="px-4 py-2">{u.fechaNacimiento || "—"}</td>
                     <td className="px-4 py-2">
+                      {misCelulas.length === 0 ? (
+                        <span className="text-slate-400">—</span>
+                      ) : reporto ? (
+                        <span className="font-medium text-green-600">Al día</span>
+                      ) : (
+                        <span className="font-medium text-red-600">Pendiente</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
                       {confirmandoUid === u.uid ? (
                         <span className="flex items-center gap-2">
                           <span className="text-xs text-slate-600">
@@ -342,16 +447,32 @@ function UsuariosContent() {
                           </button>
                           <button
                             onClick={() => setConfirmandoUid(u.uid)}
-                            className="text-red-600 hover:underline"
+                            className="mr-3 text-red-600 hover:underline"
                           >
                             Eliminar
                           </button>
+                          {!reporto &&
+                            misCelulas.length > 0 &&
+                            (u.celular ? (
+                              <a
+                                href={`https://wa.me/${normalizePhone(u.celular)}?text=${encodeURIComponent(
+                                  mensajeRecordatorio(u.nombre, numeros)
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-green-600 hover:underline"
+                              >
+                                Recordar por WhatsApp
+                              </a>
+                            ) : (
+                              <span className="text-slate-400">Sin celular</span>
+                            ))}
                         </>
                       )}
                     </td>
                   </tr>
-                )
-              )}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -364,7 +485,7 @@ export default function UsuariosPage() {
   return (
     <ProtectedRoute allow={["admin"]}>
       <Navbar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         <UsuariosContent />
       </main>
     </ProtectedRoute>

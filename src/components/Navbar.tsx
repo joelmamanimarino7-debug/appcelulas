@@ -45,9 +45,6 @@ export function Navbar() {
                 <Link href="/admin/celulas" className="hover:text-slate-900">
                   Células
                 </Link>
-                <Link href="/admin/lideres" className="hover:text-slate-900">
-                  Líderes
-                </Link>
                 <Link href="/admin/qr" className="hover:text-slate-900">
                   QR de ofrenda
                 </Link>
