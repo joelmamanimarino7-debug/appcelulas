@@ -1,5 +1,7 @@
 export type Rol = "lider" | "lider_m12" | "admin";
 
+export type Genero = "Mujeres" | "Varones";
+
 export interface Usuario {
   uid: string;
   nombre: string;
@@ -10,12 +12,13 @@ export interface Usuario {
   activo: boolean;
   celular?: string; // número de WhatsApp, sin código de país
   fechaNacimiento?: string; // ISO yyyy-MM-dd
+  genero?: Genero; // solo líder/líder M12, usado para filtrar el líder al crear una célula
 }
 
 export interface Celula {
   id: string;
   numero: string;
-  nombre?: string;
+  nombre?: string; // históricamente el género de la célula ("Mujeres" | "Varones")
   liderId: string;
   liderNombre: string;
   liderM12Id: string;

@@ -12,7 +12,13 @@ import {
 import { db } from "@/lib/firebase";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Navbar } from "@/components/Navbar";
-import { Celula, Usuario } from "@/lib/types";
+import { Celula, Genero, Usuario } from "@/lib/types";
+
+function filtrarPorGenero(lideres: Usuario[], genero: Genero | "", incluirSiempre?: string) {
+  return lideres.filter(
+    (u) => u.uid === incluirSiempre || !genero || !u.genero || u.genero === genero
+  );
+}
 
 function CrearCelulaForm({
   lideresDisponibles,
@@ -24,11 +30,20 @@ function CrearCelulaForm({
   onCreated: () => void;
 }) {
   const [numero, setNumero] = useState("");
-  const [nombre, setNombre] = useState("");
+  const [genero, setGenero] = useState<Genero | "">("");
   const [liderId, setLiderId] = useState("");
   const [liderM12Id, setLiderM12Id] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const lideresFiltrados = filtrarPorGenero(lideresDisponibles, genero);
+
+  function handleGeneroChange(value: Genero | "") {
+    setGenero(value);
+    if (liderId && !lideresFiltrados.some((u) => u.uid === liderId)) {
+      setLiderId("");
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,7 +61,7 @@ function CrearCelulaForm({
       const batch = writeBatch(db);
       batch.set(celulaRef, {
         numero,
-        nombre: nombre || null,
+        nombre: genero,
         liderId,
         liderNombre: lider.nombre,
         liderM12Id,
@@ -60,7 +75,7 @@ function CrearCelulaForm({
       await batch.commit();
 
       setNumero("");
-      setNombre("");
+      setGenero("");
       setLiderId("");
       setLiderM12Id("");
       onCreated();
@@ -83,12 +98,17 @@ function CrearCelulaForm({
         />
       </label>
       <label className="text-sm">
-        <span className="mb-1 block font-medium text-slate-700">Nombre (opcional)</span>
-        <input
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
+        <span className="mb-1 block font-medium text-slate-700">Género</span>
+        <select
+          required
+          value={genero}
+          onChange={(e) => handleGeneroChange(e.target.value as Genero)}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-        />
+        >
+          <option value="">Selecciona...</option>
+          <option value="Mujeres">Mujeres</option>
+          <option value="Varones">Varones</option>
+        </select>
       </label>
       <label className="text-sm">
         <span className="mb-1 block font-medium text-slate-700">Líder</span>
@@ -99,7 +119,7 @@ function CrearCelulaForm({
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
         >
           <option value="">Selecciona...</option>
-          {lideresDisponibles.map((u) => (
+          {lideresFiltrados.map((u) => (
             <option key={u.uid} value={u.uid}>
               {u.nombre}
             </option>
@@ -131,11 +151,19 @@ function CrearCelulaForm({
         >
           {submitting ? "Creando..." : "Crear célula"}
         </button>
-        {lideresDisponibles.length === 0 && (
+        {lideresDisponibles.length === 0 ? (
           <p className="mt-2 text-xs text-amber-600">
             Todavía no hay líderes creados. Crea uno primero en{" "}
             <span className="font-medium">Usuarios</span>.
           </p>
+        ) : (
+          genero &&
+          lideresFiltrados.length === 0 && (
+            <p className="mt-2 text-xs text-amber-600">
+              No hay líderes de género &quot;{genero}&quot; disponibles. Edítalo en{" "}
+              <span className="font-medium">Usuarios</span> o elige el otro género.
+            </p>
+          )
         )}
       </div>
     </form>
@@ -154,16 +182,34 @@ function EditarCelulaRow({
   onDone: () => void;
 }) {
   const [numero, setNumero] = useState(celula.numero);
-  const [nombre, setNombre] = useState(celula.nombre ?? "");
+  const [genero, setGenero] = useState<Genero | "">(
+    celula.nombre === "Mujeres" || celula.nombre === "Varones" ? celula.nombre : ""
+  );
   const [liderId, setLiderId] = useState(celula.liderId);
   const [liderM12Id, setLiderM12Id] = useState(celula.liderM12Id);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const lideresFiltrados = filtrarPorGenero(lideresDisponibles, genero, liderId);
+
+  function handleGeneroChange(value: Genero | "") {
+    setGenero(value);
+    if (liderId && liderId !== celula.liderId) {
+      const sigueDisponible = filtrarPorGenero(lideresDisponibles, value).some(
+        (u) => u.uid === liderId
+      );
+      if (!sigueDisponible) setLiderId(celula.liderId);
+    }
+  }
+
   async function handleGuardar() {
     setError(null);
     if (!liderId || !liderM12Id) {
       setError("Selecciona un líder y un líder M12.");
+      return;
+    }
+    if (!genero) {
+      setError("Selecciona un género.");
       return;
     }
     setSubmitting(true);
@@ -174,7 +220,7 @@ function EditarCelulaRow({
       const batch = writeBatch(db);
       batch.update(doc(db, "celulas", celula.id), {
         numero,
-        nombre: nombre || null,
+        nombre: genero,
         liderId,
         liderNombre: lider.nombre,
         liderM12Id,
@@ -219,12 +265,16 @@ function EditarCelulaRow({
             />
           </label>
           <label className="text-sm">
-            <span className="mb-1 block font-medium text-slate-700">Nombre</span>
-            <input
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+            <span className="mb-1 block font-medium text-slate-700">Género</span>
+            <select
+              value={genero}
+              onChange={(e) => handleGeneroChange(e.target.value as Genero)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-            />
+            >
+              <option value="">Selecciona...</option>
+              <option value="Mujeres">Mujeres</option>
+              <option value="Varones">Varones</option>
+            </select>
           </label>
           <label className="text-sm">
             <span className="mb-1 block font-medium text-slate-700">Líder</span>
@@ -233,7 +283,7 @@ function EditarCelulaRow({
               onChange={(e) => setLiderId(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
             >
-              {lideresDisponibles.map((u) => (
+              {lideresFiltrados.map((u) => (
                 <option key={u.uid} value={u.uid}>
                   {u.nombre}
                 </option>
@@ -345,7 +395,7 @@ function CelulasContent() {
             <thead className="bg-slate-50 text-left text-slate-500">
               <tr>
                 <th className="px-4 py-2 font-medium">N°</th>
-                <th className="px-4 py-2 font-medium">Nombre</th>
+                <th className="px-4 py-2 font-medium">Género</th>
                 <th className="px-4 py-2 font-medium">Líder</th>
                 <th className="px-4 py-2 font-medium">Líder M12</th>
                 <th className="px-4 py-2 font-medium">Acciones</th>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { toAuthEmail } from "@/lib/auth-email";
 import { requireAdmin } from "@/lib/require-admin";
-import { Rol } from "@/lib/types";
+import { Genero, Rol } from "@/lib/types";
 
 interface CreateUserBody {
   nombre: string;
@@ -10,6 +10,7 @@ interface CreateUserBody {
   password: string;
   rol: Rol;
   liderM12Id?: string;
+  genero?: Genero;
 }
 
 export async function POST(req: NextRequest) {
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json()) as CreateUserBody;
-  const { nombre, usuario, password, rol, liderM12Id } = body;
+  const { nombre, usuario, password, rol, liderM12Id, genero } = body;
 
   if (!nombre || !usuario || !password || !rol) {
     return NextResponse.json({ error: "Faltan campos obligatorios." }, { status: 400 });
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
       rol,
       activo: true,
       ...(rol === "lider" ? { celulaIds: [], liderM12Id: liderM12Id ?? null } : {}),
+      ...(genero ? { genero } : {}),
     });
 
     return NextResponse.json({ uid: userRecord.uid });

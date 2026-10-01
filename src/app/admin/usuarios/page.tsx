@@ -14,7 +14,7 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Navbar } from "@/components/Navbar";
-import { Celula, Informe, Rol, Usuario } from "@/lib/types";
+import { Celula, Genero, Informe, Rol, Usuario } from "@/lib/types";
 
 function isoDaysAgo(days: number) {
   const d = new Date();
@@ -62,6 +62,7 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
   const [rol, setRol] = useState<Rol>("lider");
+  const [genero, setGenero] = useState<Genero | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -72,7 +73,13 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
     const res = await fetch("/api/admin/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ nombre, usuario: usuarioIntento, password: passwordFinal, rol }),
+      body: JSON.stringify({
+        nombre,
+        usuario: usuarioIntento,
+        password: passwordFinal,
+        rol,
+        ...(genero ? { genero } : {}),
+      }),
     });
     const data = await res.json();
     return { ok: res.ok, data };
@@ -115,6 +122,7 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
       setNombre("");
       setUsuario("");
       setPassword("");
+      setGenero("");
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido.");
@@ -146,6 +154,21 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
           <option value="admin">Administrador</option>
         </select>
       </label>
+      {!esAdmin && (
+        <label className="text-sm">
+          <span className="mb-1 block font-medium text-slate-700">Género</span>
+          <select
+            required
+            value={genero}
+            onChange={(e) => setGenero(e.target.value as Genero)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">Selecciona...</option>
+            <option value="Mujeres">Mujeres</option>
+            <option value="Varones">Varones</option>
+          </select>
+        </label>
+      )}
       {esAdmin && (
         <>
           <label className="text-sm">
@@ -208,6 +231,7 @@ function EditarUsuarioRow({
   const [liderM12Id, setLiderM12Id] = useState(usuario.liderM12Id ?? "");
   const [celular, setCelular] = useState(usuario.celular ?? "");
   const [fechaNacimiento, setFechaNacimiento] = useState(usuario.fechaNacimiento ?? "");
+  const [genero, setGenero] = useState<Genero | "">(usuario.genero ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -222,6 +246,7 @@ function EditarUsuarioRow({
         liderM12Id: rol === "lider" ? liderM12Id || null : usuario.liderM12Id ?? null,
         celular,
         fechaNacimiento,
+        genero: genero || null,
         ...(rolCambioAFueraDeLider ? { celulaIds: deleteField() } : {}),
       });
       onDone();
@@ -234,7 +259,7 @@ function EditarUsuarioRow({
 
   return (
     <tr className="border-t border-slate-100 bg-slate-50">
-      <td className="px-4 py-2" colSpan={8}>
+      <td className="px-4 py-2" colSpan={9}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="text-sm">
             <span className="mb-1 block font-medium text-slate-700">Nombre</span>
@@ -273,6 +298,18 @@ function EditarUsuarioRow({
               </select>
             </label>
           )}
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Género</span>
+            <select
+              value={genero}
+              onChange={(e) => setGenero(e.target.value as Genero)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="">Sin definir</option>
+              <option value="Mujeres">Mujeres</option>
+              <option value="Varones">Varones</option>
+            </select>
+          </label>
           <label className="text-sm">
             <span className="mb-1 block font-medium text-slate-700">Número de celular</span>
             <input
@@ -410,6 +447,7 @@ function UsuariosContent() {
               <tr>
                 <th className="px-4 py-2 font-medium">Nombre</th>
                 <th className="px-4 py-2 font-medium">Rol</th>
+                <th className="px-4 py-2 font-medium">Género</th>
                 <th className="px-4 py-2 font-medium">Célula(s)</th>
                 <th className="px-4 py-2 font-medium">Celular</th>
                 <th className="px-4 py-2 font-medium">Fecha de nacimiento</th>
@@ -438,6 +476,7 @@ function UsuariosContent() {
                   <tr key={u.uid} className="border-t border-slate-100">
                     <td className="px-4 py-2">{u.nombre}</td>
                     <td className="px-4 py-2">{ROL_LABEL[u.rol]}</td>
+                    <td className="px-4 py-2">{u.genero || "—"}</td>
                     <td className="px-4 py-2">
                       {u.celulaIds && u.celulaIds.length > 0
                         ? u.celulaIds.map((id) => numeroPorCelulaId.get(id) ?? id).join(", ")
