@@ -182,9 +182,13 @@ function EditarCelulaRow({
       });
 
       if (liderId !== celula.liderId) {
-        batch.update(doc(db, "usuarios", celula.liderId), {
-          celulaIds: arrayRemove(celula.id),
-        });
+        // El líder anterior puede haber sido eliminado como usuario mientras
+        // la célula seguía apuntando a él; en ese caso no hay nada que quitar.
+        if (lideresDisponibles.some((u) => u.uid === celula.liderId)) {
+          batch.update(doc(db, "usuarios", celula.liderId), {
+            celulaIds: arrayRemove(celula.id),
+          });
+        }
         batch.update(doc(db, "usuarios", liderId), {
           celulaIds: arrayUnion(celula.id),
           liderM12Id,
@@ -307,9 +311,13 @@ function CelulasContent() {
     try {
       const batch = writeBatch(db);
       batch.delete(doc(db, "celulas", c.id));
-      batch.update(doc(db, "usuarios", c.liderId), {
-        celulaIds: arrayRemove(c.id),
-      });
+      // El líder puede haber sido eliminado como usuario mientras la célula
+      // seguía existiendo; en ese caso no hay documento que actualizar.
+      if (usuarios.some((u) => u.uid === c.liderId)) {
+        batch.update(doc(db, "usuarios", c.liderId), {
+          celulaIds: arrayRemove(c.id),
+        });
+      }
       await batch.commit();
     } catch (err) {
       setErrorBorrar(err instanceof Error ? err.message : "Error al eliminar la célula.");
