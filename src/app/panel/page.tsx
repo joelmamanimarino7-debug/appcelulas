@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -23,6 +23,13 @@ function PanelContent() {
   const [startDate, setStartDate] = useState(isoDaysAgo(28));
   const [endDate, setEndDate] = useState(isoDaysAgo(0));
   const [macroFiltro, setMacroFiltro] = useState<string | null>(null);
+  const informesRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (macroFiltro) {
+      informesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [macroFiltro]);
 
   const isAdmin = usuario?.rol === "admin";
 
@@ -192,22 +199,7 @@ function PanelContent() {
         </div>
       </div>
 
-      {celulasSinInformeReciente.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-amber-800">
-            Células sin informe en los últimos 7 días ({celulasSinInformeReciente.length})
-          </h3>
-          <ul className="grid grid-cols-1 gap-1 text-sm text-amber-800 sm:grid-cols-2 lg:grid-cols-3">
-            {celulasSinInformeReciente.map((c) => (
-              <li key={c.id}>
-                N° {c.numero} — {c.liderNombre}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div>
+      <div ref={informesRef} className="scroll-mt-4">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-slate-800">
             Informes en el rango seleccionado
@@ -265,6 +257,21 @@ function PanelContent() {
           </div>
         )}
       </div>
+
+      {celulasSinInformeReciente.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="mb-2 text-sm font-semibold text-amber-800">
+            Células sin informe en los últimos 7 días ({celulasSinInformeReciente.length})
+          </h3>
+          <ul className="grid grid-cols-1 gap-1 text-sm text-amber-800 sm:grid-cols-2 lg:grid-cols-3">
+            {celulasSinInformeReciente.map((c) => (
+              <li key={c.id}>
+                N° {c.numero} — {c.liderNombre}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
