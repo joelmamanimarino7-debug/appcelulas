@@ -45,6 +45,18 @@ const ROL_LABEL: Record<Rol, string> = {
   admin: "Administrador",
 };
 
+function slugify(nombre: string): string {
+  return nombre
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function generarPasswordTemporal(): string {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 10);
+}
+
 function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
   const [nombre, setNombre] = useState("");
   const [usuario, setUsuario] = useState("");
@@ -54,6 +66,18 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const esAdmin = rol === "admin";
+
+  async function crearUsuario(token: string | undefined, usuarioIntento: string, passwordFinal: string) {
+    const res = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ nombre, usuario: usuarioIntento, password: passwordFinal, rol }),
+    });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -61,14 +85,33 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
     setSubmitting(true);
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch("/api/admin/create-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ nombre, usuario, password, rol }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al crear usuario.");
-      setSuccess(`Usuario "${nombre}" creado correctamente.`);
+
+      if (esAdmin) {
+        const { ok, data } = await crearUsuario(token, usuario, password);
+        if (!ok) throw new Error(data.error || "Error al crear usuario.");
+        setSuccess(`Administrador "${nombre}" creado correctamente.`);
+      } else {
+        const base = slugify(nombre) || `lider${Date.now()}`;
+        const passwordGenerada = generarPasswordTemporal();
+        let usuarioFinal = base;
+        let intento = 0;
+        let ultimoError: string | null = null;
+        let creado = false;
+        while (intento < 5 && !creado) {
+          const { ok, data } = await crearUsuario(token, usuarioFinal, passwordGenerada);
+          if (ok) {
+            creado = true;
+            break;
+          }
+          ultimoError = data.error || "Error al crear usuario.";
+          if (!/already|existe|in use/i.test(ultimoError ?? "")) break;
+          intento += 1;
+          usuarioFinal = `${base}${intento + 1}`;
+        }
+        if (!creado) throw new Error(ultimoError || "Error al crear usuario.");
+        setSuccess(`"${nombre}" creado correctamente (usuario interno: ${usuarioFinal}).`);
+      }
+
       setNombre("");
       setUsuario("");
       setPassword("");
@@ -92,28 +135,6 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
         />
       </label>
       <label className="text-sm">
-        <span className="mb-1 block font-medium text-slate-700">Usuario o correo</span>
-        <input
-          type="text"
-          required
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          placeholder="lider23 o lider@iglesia.org"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-        />
-      </label>
-      <label className="text-sm">
-        <span className="mb-1 block font-medium text-slate-700">Contraseña</span>
-        <input
-          type="password"
-          required
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-        />
-      </label>
-      <label className="text-sm">
         <span className="mb-1 block font-medium text-slate-700">Rol</span>
         <select
           value={rol}
@@ -125,6 +146,32 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
           <option value="admin">Administrador</option>
         </select>
       </label>
+      {esAdmin && (
+        <>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Usuario o correo</span>
+            <input
+              type="text"
+              required
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              placeholder="admin23 o admin@iglesia.org"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Contraseña</span>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+        </>
+      )}
       <div className="sm:col-span-2 lg:col-span-4">
         {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
         {success && <p className="mb-2 text-sm text-green-600">{success}</p>}
@@ -135,9 +182,10 @@ function CrearUsuarioForm({ onCreated }: { onCreated: () => void }) {
         >
           {submitting ? "Creando..." : "Crear usuario"}
         </button>
-        {rol === "lider" && (
+        {!esAdmin && (
           <p className="mt-2 text-xs text-slate-500">
-            Después de crear el líder, asígnale una célula desde la sección{" "}
+            No necesita usuario ni contraseña: llena su informe desde el formulario público, sin
+            iniciar sesión. Después de crearlo, asígnale una célula desde la sección{" "}
             <span className="font-medium">Células</span>.
           </p>
         )}
