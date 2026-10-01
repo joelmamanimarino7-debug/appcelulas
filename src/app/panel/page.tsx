@@ -84,6 +84,7 @@ function PanelContent() {
   }, [informes]);
 
   const celulasSinInformeReciente = celulas.filter((c) => {
+    if (macroFiltro && c.liderM12Id !== macroFiltro) return false;
     const ultima = ultimaFechaPorCelula.get(c.id);
     return !ultima || ultima < isoDaysAgo(7);
   });
@@ -262,6 +263,9 @@ function PanelContent() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="mb-2 text-sm font-semibold text-amber-800">
             Células sin informe en los últimos 7 días ({celulasSinInformeReciente.length})
+            {nombreMacroFiltro && (
+              <span className="font-normal"> — macrocélula de {nombreMacroFiltro}</span>
+            )}
           </h3>
           <ul className="grid grid-cols-1 gap-1 text-sm text-amber-800 sm:grid-cols-2 lg:grid-cols-3">
             {celulasSinInformeReciente.map((c) => (
