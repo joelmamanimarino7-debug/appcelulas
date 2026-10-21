@@ -72,13 +72,17 @@ export function Section({
 
 export function CelulaInformeForm({
   celulaId,
+  celulaInicial,
   onSaved,
 }: {
   celulaId: string;
+  celulaInicial?: Celula;
   onSaved: (informeId: string) => void;
 }) {
-  const [celula, setCelula] = useState<Celula | null>(null);
-  const [loadingCelula, setLoadingCelula] = useState(true);
+  const [celula, setCelula] = useState<Celula | null>(celulaInicial ?? null);
+  const [loadingCelula, setLoadingCelula] = useState(!celulaInicial);
+  const [errorCarga, setErrorCarga] = useState(false);
+  const [intento, setIntento] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,36 +102,54 @@ export function CelulaInformeForm({
   const [visitas, setVisitas] = useState<string[]>([]);
 
   useEffect(() => {
-    async function load() {
-      const celulaSnap = await getDoc(doc(db, "celulas", celulaId));
-      if (celulaSnap.exists()) {
-        setCelula({ id: celulaSnap.id, ...(celulaSnap.data() as Omit<Celula, "id">) });
-      }
-
-      // Precargar dirección/teléfono/día/hora del último informe si se puede
-      // leer (los líderes sin sesión no tienen permiso para ver informes
-      // pasados, así que simplemente se omite el precargado en ese caso).
-      try {
-        const q = query(
-          collection(db, "informes"),
-          where("celulaId", "==", celulaId),
-          orderBy("fecha", "desc"),
-          limit(1)
-        );
-        const lastSnap = await getDocs(q);
-        if (!lastSnap.empty) {
-          const last = lastSnap.docs[0].data() as Informe;
-          setDireccion(last.direccion ?? "");
-          setTelefono(last.telefono ?? "");
-          setDiaReunion(last.diaReunion ?? "");
-          setHora(last.hora ?? "");
+    if (celulaInicial) return;
+    let cancelado = false;
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 15000)
+    );
+    Promise.race([getDoc(doc(db, "celulas", celulaId)), timeout])
+      .then((snap) => {
+        if (cancelado) return;
+        if (snap.exists()) {
+          setCelula({ id: snap.id, ...(snap.data() as Omit<Celula, "id">) });
         }
-      } catch {
-        // Sin permiso para leer informes anteriores: se continúa sin precargar.
-      }
-      setLoadingCelula(false);
-    }
-    load();
+        setLoadingCelula(false);
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setErrorCarga(true);
+        setLoadingCelula(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [celulaId, celulaInicial, intento]);
+
+  // Precarga opcional de dirección/teléfono/día/hora del último informe. Corre
+  // en segundo plano y nunca bloquea el formulario: los líderes sin sesión no
+  // tienen permiso para leer informes, y en conexiones lentas puede tardar.
+  useEffect(() => {
+    let cancelado = false;
+    getDocs(
+      query(
+        collection(db, "informes"),
+        where("celulaId", "==", celulaId),
+        orderBy("fecha", "desc"),
+        limit(1)
+      )
+    )
+      .then((lastSnap) => {
+        if (cancelado || lastSnap.empty) return;
+        const last = lastSnap.docs[0].data() as Informe;
+        setDireccion((v) => v || (last.direccion ?? ""));
+        setTelefono((v) => v || (last.telefono ?? ""));
+        setDiaReunion((v) => v || (last.diaReunion ?? ""));
+        setHora((v) => v || (last.hora ?? ""));
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
   }, [celulaId]);
 
   const totalPresentes = [...miembros, ...escuelaLideres, ...demasAsistentes, ...visitas].filter(
@@ -178,6 +200,27 @@ export function CelulaInformeForm({
       <div className="flex items-center justify-center gap-3 py-16 text-sm text-slate-500">
         <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
         Cargando datos de la célula...
+      </div>
+    );
+  }
+
+  if (errorCarga) {
+    return (
+      <div className="py-16 text-center">
+        <p className="text-sm text-slate-600">
+          No pudimos cargar los datos. Revisa tu conexión a internet.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setErrorCarga(false);
+            setLoadingCelula(true);
+            setIntento((n) => n + 1);
+          }}
+          className="mt-4 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }

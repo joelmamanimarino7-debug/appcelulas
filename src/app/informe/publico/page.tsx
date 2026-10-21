@@ -282,7 +282,11 @@ export default function InformePublicoPage() {
           />
         )}
         {paso === "form" && celula && (
-          <CelulaInformeForm celulaId={celula.id} onSaved={() => setPaso("gracias")} />
+          <CelulaInformeForm
+            celulaId={celula.id}
+            celulaInicial={celula}
+            onSaved={() => setPaso("gracias")}
+          />
         )}
         {paso === "gracias" && (
           <Gracias
