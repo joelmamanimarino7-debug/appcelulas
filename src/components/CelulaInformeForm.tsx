@@ -27,6 +27,13 @@ function today() {
 }
 
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+function diaDeLaFecha(fechaIso: string): string {
+  const [y, m, d] = fechaIso.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const getDay = new Date(y, m - 1, d).getDay(); // 0 = domingo
+  return DIAS_SEMANA[(getDay + 6) % 7];
+}
 const MINUTOS = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
 
 // text-base en móvil evita que iOS haga zoom al enfocar un campo.
@@ -153,6 +160,16 @@ export function CelulaInformeForm({
       cancelado = true;
     };
   }, [celulaId]);
+
+  const diaCorrecto = diaDeLaFecha(fecha);
+  const diaNoCoincide = diaReunion !== "" && diaCorrecto !== "" && diaReunion !== diaCorrecto;
+  const diaRef = useRef<HTMLSelectElement | null>(null);
+
+  useEffect(() => {
+    diaRef.current?.setCustomValidity(
+      diaNoCoincide ? `La fecha elegida cae en ${diaCorrecto}, no en ${diaReunion}.` : ""
+    );
+  }, [diaNoCoincide, diaCorrecto, diaReunion]);
 
   const totalPresentes = [...miembros, ...escuelaLideres, ...demasAsistentes, ...visitas].filter(
     (n) => n.trim() !== ""
@@ -298,10 +315,18 @@ export function CelulaInformeForm({
           </Field>
           <Field label="Día de reunión" className="col-span-2 sm:col-span-1">
             <select
+              ref={diaRef}
               required
               value={diaReunion}
               onChange={(e) => setDiaReunion(e.target.value)}
-              className={inputClass}
+              className={
+                diaNoCoincide
+                  ? inputClass
+                      .replace("border-slate-300", "border-red-400")
+                      .replace("focus:border-blue-500", "focus:border-red-500")
+                      .replace("focus:ring-blue-100", "focus:ring-red-100")
+                  : inputClass
+              }
             >
               <option value="">Selecciona...</option>
               {DIAS_SEMANA.map((dia) => (
@@ -311,6 +336,20 @@ export function CelulaInformeForm({
               ))}
             </select>
           </Field>
+          {diaNoCoincide && (
+            <div className="col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-3">
+              La fecha {fecha.split("-").reverse().join("/")} cae en{" "}
+              <strong>{diaCorrecto}</strong>, pero elegiste <strong>{diaReunion}</strong>. Revisa la
+              fecha o el día.
+              <button
+                type="button"
+                onClick={() => setDiaReunion(diaCorrecto)}
+                className="ml-1 font-semibold text-red-800 underline underline-offset-2"
+              >
+                Cambiar a {diaCorrecto}
+              </button>
+            </div>
+          )}
           <Field label="Hora" className="col-span-2 sm:col-span-2">
             <div className="flex items-center gap-2">
               <select
