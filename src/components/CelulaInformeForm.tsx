@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import {
   addDoc,
   collection,
@@ -84,6 +84,8 @@ export function CelulaInformeForm({
   const [errorCarga, setErrorCarga] = useState(false);
   const [intento, setIntento] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [nominaVacia, setNominaVacia] = useState(false);
+  const nominaRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [fecha, setFecha] = useState(today());
@@ -160,6 +162,11 @@ export function CelulaInformeForm({
     e.preventDefault();
     if (!celula) return;
     setError(null);
+    if (totalPresentes === 0) {
+      setNominaVacia(true);
+      nominaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     setSubmitting(true);
     try {
       const nowIso = new Date().toISOString();
@@ -380,10 +387,16 @@ export function CelulaInformeForm({
         </div>
       </Section>
 
+      <div ref={nominaRef} className="scroll-mt-4">
       <Section
         titulo="Nómina de presentes"
-        descripcion="Escribe el nombre de cada persona. Deja vacíos los espacios que no uses."
+        descripcion="Escribe el nombre de cada persona (al menos uno). Deja vacíos los espacios que no uses."
       >
+        {nominaVacia && totalPresentes === 0 && (
+          <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Escribe al menos un nombre en cualquiera de las listas para poder enviar el informe.
+          </p>
+        )}
         <div className="space-y-6">
           <NominaList
             label="Miembros"
@@ -414,6 +427,7 @@ export function CelulaInformeForm({
           />
         </div>
       </Section>
+      </div>
 
       <Section titulo="Observaciones">
         <textarea
